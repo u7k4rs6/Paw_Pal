@@ -19,7 +19,6 @@ interface PetContextType {
   identifyBreed: (imageUrl: string) => Promise<void>;
 }
 
-// Add interfaces for API responses
 interface DogApiUploadResponse {
   id: string;
   url: string;
@@ -90,34 +89,25 @@ export const PetContextProvider = ({ children }: { children: ReactNode }) => {
 
   const uploadPhoto = async (file: File): Promise<string> => {
     try {
-      // Just return the local URL for now
       return URL.createObjectURL(file);
     } catch (error) {
       console.error("Error creating object URL:", error);
       throw new Error("Failed to process the image");
     }
   };
-
-  // A smarter breed identification function
   const identifyBreed = async (imageUrl: string) => {
     try {
       setLoading(true);
       console.log("Starting breed identification process");
-      
-      // Get API key (for potential future API integration)
       const apiKey = import.meta.env.VITE_DOG_API_KEY || '';
 
-      // Create a loading delay for a more realistic experience
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Create an image element to analyze basic color characteristics
       const img = new Image();
       img.crossOrigin = "Anonymous";
-      
-      // Set up a promise to handle the image loading
+    
       const imageLoadPromise = new Promise<{color: string, isDark: boolean}>((resolve) => {
         img.onload = () => {
-          // Create a canvas to analyze the image
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
@@ -126,20 +116,15 @@ export const PetContextProvider = ({ children }: { children: ReactNode }) => {
             resolve({color: 'unknown', isDark: false});
             return;
           }
-          
-          // Draw the image on canvas
+        
           ctx.drawImage(img, 0, 0);
-          
-          // Get color data from the center of the image
+        
           const centerX = Math.floor(img.width / 2);
           const centerY = Math.floor(img.height / 2);
           const pixelData = ctx.getImageData(centerX, centerY, 1, 1).data;
           
-          // Calculate brightness (simple formula)
           const brightness = (pixelData[0] + pixelData[1] + pixelData[2]) / 3;
           const isDark = brightness < 128;
-          
-          // Determine dominant color
           let color = 'unknown';
           
           if (pixelData[0] > pixelData[1] + 50 && pixelData[0] > pixelData[2] + 50) {
@@ -153,7 +138,6 @@ export const PetContextProvider = ({ children }: { children: ReactNode }) => {
           } else if (pixelData[0] < 60 && pixelData[1] < 60 && pixelData[2] < 60) {
             color = 'black';
           } else if (Math.abs(pixelData[0] - pixelData[1]) < 30 && Math.abs(pixelData[0] - pixelData[2]) < 30) {
-            // Similar RGB values
             if (brightness < 100) {
               color = 'black';
             } else if (brightness > 200) {
@@ -182,14 +166,11 @@ export const PetContextProvider = ({ children }: { children: ReactNode }) => {
       
       img.src = imageUrl;
       
-      // Get image analysis results
       const imageAnalysis = await imageLoadPromise;
       console.log("Image analysis results:", imageAnalysis);
       
-      // Use image characteristics to find a somewhat appropriate breed
       let matchedBreeds: Breed[] = [];
       
-      // Simple color to breed matching logic
       switch (imageAnalysis.color) {
         case 'white':
           matchedBreeds = breeds.filter(b => 
@@ -225,27 +206,21 @@ export const PetContextProvider = ({ children }: { children: ReactNode }) => {
           );
           break;
         default:
-          // No specific match
           matchedBreeds = [];
       }
       
-      // If we found matching breeds based on color, pick one randomly from that set
       let selectedBreed: Breed;
       if (matchedBreeds.length > 0) {
         selectedBreed = matchedBreeds[Math.floor(Math.random() * matchedBreeds.length)];
         console.log(`Selected breed based on color "${imageAnalysis.color}": ${selectedBreed.name}`);
       } else {
-        // Otherwise pick a random breed
         selectedBreed = breeds[Math.floor(Math.random() * breeds.length)];
         console.log(`Selected random breed: ${selectedBreed.name}`);
       }
-      
-      // Set the identified breed
       setIdentifiedBreed(selectedBreed);
       
     } catch (error) {
       console.error('Error in breed identification process:', error);
-      // Use a fallback breed so the app doesn't crash
       const fallbackBreed = breeds[0];
       setIdentifiedBreed(fallbackBreed);
       
